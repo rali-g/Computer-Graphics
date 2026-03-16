@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross Plot - Алгоритъм за геометрично моделиране</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #eee;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            color: #888;
+            margin-top: 10px;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .canvas-container {
+            flex: 1;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 10px;
+            position: relative;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            background: #0a0a14;
+            border-radius: 10px;
+            cursor: crosshair;
+        }
+
+        .controls {
+            width: 320px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-group {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .control-group h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            border-bottom: 1px solid rgba(0,212,255,0.3);
+            padding-bottom: 10px;
+        }
+
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .control-row label {
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
+        .control-row input[type="range"] {
+            width: 150px;
+            accent-color: #00d4ff;
+        }
+
+        .control-row input[type="number"] {
+            width: 70px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #333;
+            border-radius: 5px;
+            color: #fff;
+            padding: 5px 8px;
+            text-align: center;
+        }
+
+        .control-row span.value {
+            background: rgba(0,212,255,0.2);
+            padding: 4px 12px;
+            border-radius: 5px;
+            min-width: 50px;
+            text-align: center;
+            font-family: monospace;
+        }
+
+        button {
+            background: linear-gradient(45deg, #00d4ff, #7b2cbf);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,212,255,0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: linear-gradient(45deg, #555, #333);
+        }
+
+        button.danger {
+            background: #dc3545;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .checkbox-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #00d4ff;
+        }
+
+        .checkbox-row label {
+            color: #aaa;
+            cursor: pointer;
+        }
+
+        .legend {
+            margin-top: auto;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .legend-item span {
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        .color-curve { background: #00d4ff; }
+        .color-control { background: #ff6b6b; }
+        .color-points { background: #ffd93d; }
+        .color-tangent { background: #6bcb77; }
+
+        .info-box {
+            background: rgba(0,212,255,0.1);
+            border-left: 3px solid #00d4ff;
+            padding: 10px 15px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.85em;
+            color: #aaa;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.75em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* Tooltip styles */
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.9);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Cross Plot Algorithm</h1>
+            <p>Интерактивна визуализация на алгоритъма Cross Plot за геометрично моделиране</p>
+        </header>
+
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="canvas"></canvas>
+                <div class="tooltip" id="tooltip"></div>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <h3>Статистика</h3>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="pointCount">0</div>
+                            <div class="stat-label">Точки</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="segmentCount">0</div>
+                            <div class="stat-label">Сегменти</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Параметри</h3>
+                    <div class="control-row">
+                        <label>Tension (напрежение):</label>
+                        <span class="value" id="tensionValue">1.00</span>
+                    </div>
+                    <input type="range" id="tensionSlider" min="0" max="2" step="0.05" value="1" style="width: 100%;">
+
+                    <div class="control-row" style="margin-top: 15px;">
+                        <label>Семпли на сегмент:</label>
+                        <input type="number" id="samplesInput" value="50" min="10" max="200">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Визуализация</h3>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="showCurve" checked>
+                        <label for="showCurve">Покажи кривата</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="showControlPolygon" checked>
+                        <label for="showControlPolygon">Покажи контролния полигон</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="showTangents">
+                        <label for="showTangents">Покажи тангентите</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="showGrid" checked>
+                        <label for="showGrid">Покажи мрежата</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="antialiasing" checked>
+                        <label for="antialiasing">Anti-aliasing</label>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Действия</h3>
+                    <button onclick="clearCanvas()" class="danger" style="width: 100%; margin-bottom: 10px;">Изчисти всички точки</button>
+                    <button onclick="addDemoPoints()" class="secondary" style="width: 100%;">Демо точки</button>
+                </div>
+
+                <div class="control-group legend">
+                    <h3>Легенда</h3>
+                    <div class="legend-item">
+                        <div class="legend-color color-curve"></div>
+                        <span>Cross Plot крива</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color color-control"></div>
+                        <span>Безие контролен полигон</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color color-points"></div>
+                        <span>Интерполационни точки</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color color-tangent"></div>
+                        <span>Тангентни вектори</span>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>Съвет:</strong> Кликнете за добавяне на точки. Влачете точките за промяна на формата на кривата.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
